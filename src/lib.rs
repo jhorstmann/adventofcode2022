@@ -4,6 +4,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::str::Utf8Error;
+use std::string::FromUtf8Error;
 
 #[derive(Debug)]
 pub enum Error {
@@ -39,6 +40,12 @@ impl From<std::num::ParseFloatError> for Error {
 impl From<Utf8Error> for Error {
     fn from(e: Utf8Error) -> Self {
         Error::ParseUtf8(e)
+    }
+}
+
+impl From<FromUtf8Error> for Error {
+    fn from(e: FromUtf8Error) -> Self {
+        Error::ParseUtf8(e.utf8_error())
     }
 }
 
@@ -195,4 +202,12 @@ impl Iterator for Bitmap64Iter {
             Some(tz as usize)
         }
     }
+}
+
+#[macro_export]
+macro_rules! regex {
+    ($re:literal $(,)?) => {{
+        static RE: ::once_cell::sync::OnceCell<::regex::Regex> = ::once_cell::sync::OnceCell::new();
+        RE.get_or_init(|| ::regex::Regex::new($re).expect("invalid regex"))
+    }};
 }
