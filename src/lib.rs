@@ -65,7 +65,7 @@ impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::Io(e) => f.write_fmt(format_args!("Io: {}", e)),
-            Error::ParseInt(e) => f.write_fmt(format_args!("Parse: {}", e)),
+            Error::ParseInt(e) => f.write_fmt(format_args!("Parse: {:?}", e)),
             Error::ParseFloat(e) => f.write_fmt(format_args!("Parse: {}", e)),
             Error::ParseUtf8(e) => f.write_fmt(format_args!("Parse: {}", e)),
             Error::General(s) => f.write_fmt(format_args!("General: {}", s)),

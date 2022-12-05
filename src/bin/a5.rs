@@ -1,6 +1,6 @@
 use adventofcode2022::Result;
 use adventofcode2022::{read_lines, regex, Error};
-use std::num::ParseIntError;
+use std::num::NonZeroUsize;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy)]
@@ -15,7 +15,7 @@ impl FromStr for Instruction {
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         fn parse_positive(s: &str) -> Result<usize> {
-            s.parse::<usize>()?.checked_sub(1).ok_or(Error::PatternMatch)
+            Ok(s.parse::<NonZeroUsize>()?.get().wrapping_sub(1))
         }
 
         let pattern = regex!("^move (\\d+) from (\\d+) to (\\d+)$");
@@ -29,6 +29,41 @@ impl FromStr for Instruction {
 
 type Stacks = Vec<Vec<u8>>;
 
+fn part1(stacks: &mut Stacks, instructions: &[Instruction]) {
+    instructions.iter().for_each(|insn| {
+        for _ in 0..insn.amount {
+            let x = stacks[insn.from].pop().unwrap();
+            stacks[insn.to].push(x);
+        }
+    });
+}
+
+fn part2(stacks: &mut Stacks, instructions: &[Instruction]) {
+    let mut tmp = vec![];
+    instructions.iter().for_each(|insn| {
+        tmp.clear();
+        for _ in 0..insn.amount {
+            let x = stacks[insn.from].pop().unwrap();
+            tmp.push(x);
+        }
+        tmp.reverse();
+        stacks[insn.to].extend_from_slice(&tmp);
+    });
+}
+
+fn stack_top_to_string(stacks: &Stacks) -> String {
+    stacks
+        .iter()
+        .map(|stack| {
+            stack
+                .last()
+                .copied()
+                .map(char::from)
+                .unwrap_or(char::REPLACEMENT_CHARACTER)
+        })
+        .collect()
+}
+
 fn main() -> Result<()> {
     let lines = read_lines("data/a5.txt")?;
 
@@ -40,8 +75,8 @@ fn main() -> Result<()> {
         .ok_or(Error::EmptyIterator)?
         .trim()
         .split_ascii_whitespace()
-        .map(|n| n.parse::<usize>())
-        .collect::<std::result::Result<Vec<usize>, _>>()?;
+        .map(|n| n.parse::<NonZeroUsize>())
+        .collect::<std::result::Result<Vec<NonZeroUsize>, _>>()?;
 
     let mut stacks = vec![Vec::default(); stack_numbers.len()];
 
@@ -54,7 +89,6 @@ fn main() -> Result<()> {
     });
 
     stacks.iter_mut().for_each(|stack| stack.reverse());
-    let initial_stacks = stacks.clone();
 
     let instructions = split.next().unwrap();
     let instructions = instructions
@@ -62,42 +96,17 @@ fn main() -> Result<()> {
         .map(|insn| Instruction::from_str(insn))
         .collect::<Result<Vec<Instruction>>>()?;
 
-    instructions.iter().for_each(|insn| {
-        for _ in 0..insn.amount {
-            let x = stacks[insn.from].pop().unwrap();
-            stacks[insn.to].push(x);
-        }
-    });
+    {
+        let mut stacks = stacks.clone();
+        part1(&mut stacks, &instructions);
+        println!("part1: {}", stack_top_to_string(&stacks));
+    }
 
-    let part1 = String::from_utf8(
-        stacks
-            .iter()
-            .map(|stack| stack.last().copied().unwrap_or(b' '))
-            .collect(),
-    )?;
-
-    println!("part1: {}", part1);
-
-    stacks = initial_stacks;
-
-    instructions.iter().for_each(|insn| {
-        let mut tmp = vec![];
-        for _ in 0..insn.amount {
-            let x = stacks[insn.from].pop().unwrap();
-            tmp.push(x);
-        }
-        tmp.reverse();
-        stacks[insn.to].extend_from_slice(&tmp);
-    });
-
-    let part2 = String::from_utf8(
-        stacks
-            .iter()
-            .map(|stack| stack.last().copied().unwrap_or(b' '))
-            .collect(),
-    )?;
-
-    println!("part2: {}", part2);
+    {
+        let mut stacks = stacks.clone();
+        part2(&mut stacks, &instructions);
+        println!("part2: {}", stack_top_to_string(&stacks));
+    }
 
     Ok(())
 }
