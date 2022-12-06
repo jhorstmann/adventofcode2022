@@ -84,7 +84,7 @@ pub fn read_lines(file: &str) -> Result<Vec<String>> {
     Ok(br.lines().collect::<std::io::Result<Vec<String>>>()?)
 }
 
-#[derive(Clone,Copy,Default,Eq, PartialEq)]
+#[derive(Clone, Copy, Default, Eq, PartialEq)]
 pub struct Bitmap64(u64);
 
 impl Bitmap64 {
@@ -100,7 +100,7 @@ impl Bitmap64 {
 
     #[inline]
     pub fn is_set(&self, value: usize) -> bool {
-        self.0 & (1<<value) != 0
+        self.0 & (1 << value) != 0
     }
 
     #[inline]
@@ -148,6 +148,11 @@ impl Bitmap64 {
     }
 
     #[inline]
+    pub fn count_ones(&self) -> usize {
+        self.0.count_ones() as usize
+    }
+
+    #[inline]
     pub fn iter(&self) -> Bitmap64Iter {
         Bitmap64Iter(self.0)
     }
@@ -167,7 +172,7 @@ impl From<u64> for Bitmap64 {
 }
 
 impl FromIterator<usize> for Bitmap64 {
-    fn from_iter<T: IntoIterator<Item=usize>>(iter: T) -> Self {
+    fn from_iter<T: IntoIterator<Item = usize>>(iter: T) -> Self {
         let mut bitmap = Bitmap64(0);
         for elem in iter {
             assert!(elem <= 64);
@@ -198,7 +203,7 @@ impl Iterator for Bitmap64Iter {
             None
         } else {
             let tz = self.0.trailing_zeros();
-            self.0 &= !(1<<tz);
+            self.0 &= !(1 << tz);
             Some(tz as usize)
         }
     }
@@ -209,5 +214,13 @@ macro_rules! regex {
     ($re:literal $(,)?) => {{
         static RE: ::once_cell::sync::OnceCell<::regex::Regex> = ::once_cell::sync::OnceCell::new();
         RE.get_or_init(|| ::regex::Regex::new($re).expect("invalid regex"))
+    }};
+}
+
+#[macro_export]
+macro_rules! local_regex {
+    ($re:literal $(,)?) => {{
+        thread_local!(static RE: ::regex::Regex = ::regex::Regex::new($re).expect("invalid regex"));
+        RE.with(|re| re.clone())
     }};
 }

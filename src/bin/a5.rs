@@ -1,5 +1,4 @@
-use adventofcode2022::Result;
-use adventofcode2022::{read_lines, regex, Error};
+use adventofcode2022::{local_regex, read_lines, Error, Result};
 use std::num::NonZeroUsize;
 use std::str::FromStr;
 
@@ -18,7 +17,7 @@ impl FromStr for Instruction {
             Ok(s.parse::<NonZeroUsize>()?.get().wrapping_sub(1))
         }
 
-        let pattern = regex!("^move (\\d+) from (\\d+) to (\\d+)$");
+        let pattern = local_regex!("^move (\\d+) from (\\d+) to (\\d+)$");
         let captures = pattern.captures(s).ok_or(Error::PatternMatch)?;
         let amount = parse_positive(captures.get(1).unwrap().as_str())? + 1;
         let from = parse_positive(captures.get(2).unwrap().as_str())?;
