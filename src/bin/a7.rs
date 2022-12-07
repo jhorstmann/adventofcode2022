@@ -76,7 +76,7 @@ impl FromIterator<Line> for Node {
                         } else {
                             let mut children = vec![];
                             collect(iter, &mut children);
-                            nodes.push(Node::Dir(dir, children, Cell::new(None)))
+                            nodes.push(Node::Dir(dir, children, Cell::default()))
                         }
                     }
                     Some(Line::File(name, size)) => nodes.push(Node::File(name, size)),
@@ -91,7 +91,7 @@ impl FromIterator<Line> for Node {
         let mut iter1 = iter.into_iter();
         collect(&mut iter1, &mut nodes);
 
-        Node::Dir("".into(), nodes, Cell::new(None))
+        Node::Dir("".into(), nodes, Cell::default())
     }
 }
 
