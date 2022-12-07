@@ -212,8 +212,8 @@ impl Iterator for Bitmap64Iter {
 #[macro_export]
 macro_rules! regex {
     ($re:literal $(,)?) => {{
-        static RE: ::once_cell::sync::OnceCell<::regex::Regex> = ::once_cell::sync::OnceCell::new();
-        RE.get_or_init(|| ::regex::Regex::new($re).expect("invalid regex"))
+        static RE: ::once_cell::race::OnceBox<::regex::Regex> = ::once_cell::race::OnceBox::new();
+        RE.get_or_init(|| ::std::boxed::Box::new(::regex::Regex::new($re).expect("invalid regex")))
     }};
 }
 
@@ -222,5 +222,13 @@ macro_rules! local_regex {
     ($re:literal $(,)?) => {{
         thread_local!(static RE: ::regex::Regex = ::regex::Regex::new($re).expect("invalid regex"));
         RE.with(|re| re.clone())
+    }};
+}
+
+#[macro_export]
+macro_rules! regex_captures {
+    ($re:literal, $s:expr) => {{
+        thread_local!(static RE: ::regex::Regex = ::regex::Regex::new($re).expect("invalid regex"));
+        RE.with(|re| re.captures($s).ok_or(Error::PatternMatch))
     }};
 }
