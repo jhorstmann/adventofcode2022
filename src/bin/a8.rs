@@ -16,8 +16,6 @@ fn main() -> Result<()> {
 
     let mut count = 0_usize;
 
-    // const DIRS: [(usize, usize); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
-
     for row in 0..height {
         let mut z = 0_u8;
         for col in 0..width {
@@ -72,7 +70,57 @@ fn main() -> Result<()> {
         }
         println!()
     }
-    dbg!(count);
+    println!("part1: {count}");
+
+    let mut max = 0;
+    for row in 0..width {
+        for col in 0..height {
+            let i = row * width + col;
+            if seen[i] {
+                let mut a = 0;
+                let mut b = 0;
+                let mut c = 0;
+                let mut d = 0;
+
+                for x in (col + 1)..width {
+                    a += 1;
+                    let j = row * width + x;
+                    if forest[j] >= forest[i] {
+                        break;
+                    }
+                }
+                for x in (0..col).rev() {
+                    b += 1;
+                    let j = row * width + x;
+                    if forest[j] >= forest[i] {
+                        break;
+                    }
+                }
+                for y in (row + 1)..height {
+                    c += 1;
+                    let j = y * width + col;
+                    if forest[j] >= forest[i] {
+                        break;
+                    }
+                }
+                for y in (0..row).rev() {
+                    d += 1;
+                    let j = y * width + col;
+                    if forest[j] >= forest[i] {
+                        break;
+                    }
+                }
+
+                if row == 1 && col == 2 {
+                    dbg!(a, b, c, d);
+                }
+
+                max = max.max(a * b * c * d);
+            }
+        }
+    }
+
+    println!("part2: {max}");
 
     Ok(())
 }
