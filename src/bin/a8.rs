@@ -1,6 +1,5 @@
 use adventofcode2022::read_lines;
 use adventofcode2022::Result;
-use std::num::ParseIntError;
 
 fn main() -> Result<()> {
     let lines = read_lines("data/a8.txt")?;
