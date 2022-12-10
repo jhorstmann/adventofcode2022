@@ -1,5 +1,6 @@
 use adventofcode2022::Result;
 use adventofcode2022::{read_lines, Error};
+use std::str::from_utf8;
 
 #[derive(Debug, Clone, Copy)]
 enum Instruction {
@@ -40,10 +41,10 @@ pub fn main() -> Result<()> {
                 last_value += x;
             }
         }
-        println!("{cycle:3}: {instr:?} => {last_value}");
-        if cycle > 221 {
-            break;
-        }
+        // println!("{cycle:3}: {instr:?} => {last_value}");
+        // if cycle > 221 {
+        //     break;
+        // }
     }
 
     values.truncate(cycle);
@@ -56,6 +57,25 @@ pub fn main() -> Result<()> {
     });
 
     println!("part1: {part1}");
+
+    let display = values
+        .iter()
+        .enumerate()
+        .map(|(i, x)| {
+            let x = *x as i64;
+            let i = (i as i64) % 40;
+            if x >= (i - 1) && x <= (i + 1) {
+                b'#'
+            } else {
+                b'.'
+            }
+        })
+        .take(40 * 6)
+        .collect::<Vec<u8>>();
+
+    display.chunks(40).for_each(|line| {
+        println!("{}", from_utf8(line).unwrap());
+    });
 
     Ok(())
 }
