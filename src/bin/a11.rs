@@ -17,10 +17,10 @@ impl FromStr for Operation {
         if s == "* old" {
             return Ok(Operation::Square);
         }
-        if let Some(n) = s.strip_prefix("*") {
+        if let Some(n) = s.strip_prefix('*') {
             return Ok(Operation::Mul(n.trim_start().parse()?));
         }
-        if let Some(n) = s.strip_prefix("+") {
+        if let Some(n) = s.strip_prefix('+') {
             return Ok(Operation::Add(n.trim_start().parse()?));
         }
         Err(Error::PatternMatch)
@@ -37,7 +37,7 @@ impl Operation {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Monkey {
     items: Vec<usize>,
     operation: Operation,
@@ -55,7 +55,7 @@ impl Monkey {
             .ok_or(Error::EmptyIterator)?
             .strip_prefix("Monkey ")
             .ok_or(Error::PatternMatch)?
-            .strip_suffix(":")
+            .strip_suffix(':')
             .ok_or(Error::PatternMatch)?
             .parse()?;
         if n != i {
@@ -108,20 +108,34 @@ impl Monkey {
 }
 
 pub fn main() -> Result<()> {
-    let mut monkeys = read_lines("data/a11.txt")?
+    let monkeys = read_lines("data/a11.txt")?
         .split(|line| line.is_empty())
         .enumerate()
         .map(|(i, chunk)| Monkey::try_from_chunk(i, chunk))
         .collect::<Result<Vec<Monkey>>>()?;
 
-    for _round in 0..20 {
+    println!("part1: {}", solve::<true>(monkeys.clone(), 20));
+    println!("part2: {}", solve::<false>(monkeys, 10_000));
+
+    Ok(())
+}
+
+fn solve<const DIV: bool>(mut monkeys: Vec<Monkey>, rounds: usize) -> usize {
+    let gcd: usize = monkeys.iter().map(|m| m.condition).product();
+    for _round in 0..rounds {
         for m in 0..monkeys.len() {
             let op = monkeys[m].operation;
             let cond = monkeys[m].condition;
             let then_target = monkeys[m].then_target;
             let else_target = monkeys[m].else_target;
             for i in std::mem::take(&mut monkeys[m].items) {
-                let level = op.apply(i) / 3;
+                let mut level = op.apply(i);
+                if DIV {
+                    level /= 3;
+                } else {
+                    level %= gcd;
+                }
+
                 let target = [else_target, then_target][(level % cond == 0) as usize];
                 monkeys[target].items.push(level);
                 monkeys[m].inspections += 1;
@@ -131,8 +145,5 @@ pub fn main() -> Result<()> {
 
     monkeys.sort_by_key(|m| Reverse(m.inspections));
 
-    let part1 = monkeys[0].inspections * monkeys[1].inspections;
-    println!("part1: {part1}");
-
-    Ok(())
+    monkeys[0].inspections * monkeys[1].inspections
 }
