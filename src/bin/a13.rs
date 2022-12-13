@@ -4,7 +4,7 @@ use adventofcode2022::Result;
 use serde_json::Value;
 use std::cmp::Ordering;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Packet {
     Integer(i64),
     List(Vec<Packet>),
@@ -84,8 +84,20 @@ pub fn main() -> Result<()> {
         .filter(|(_, (left, right))| left.compare(right) == Ordering::Less)
         .map(|(i, _)| i + 1)
         .sum();
-
     println!("part1: {part1}");
+
+    let div1 = Packet::List(vec![Packet::List(vec![Packet::Integer(2)])]);
+    let div2 = Packet::List(vec![Packet::List(vec![Packet::Integer(6)])]);
+    let mut combined = pairs
+        .into_iter()
+        .flat_map(|(left, right)| [left, right])
+        .chain([div1.clone(), div2.clone()])
+        .collect::<Vec<_>>();
+    combined.sort();
+
+    let idx1 = combined.iter().position(|p| p == &div1).unwrap() + 1;
+    let idx2 = combined.iter().position(|p| p == &div2).unwrap() + 1;
+    println!("part2: {idx1}*{idx2} = {}", idx1 * idx2);
 
     Ok(())
 }
