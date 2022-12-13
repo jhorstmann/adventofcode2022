@@ -12,6 +12,7 @@ pub enum Error {
     ParseInt(std::num::ParseIntError),
     ParseFloat(std::num::ParseFloatError),
     ParseUtf8(Utf8Error),
+    ParseJson(serde_json::Error),
     General(String),
     PatternMatch,
     EmptyIterator,
@@ -61,6 +62,12 @@ impl From<TryFromSliceError> for Error {
     }
 }
 
+impl From<serde_json::Error> for Error {
+    fn from(e: serde_json::Error) -> Self {
+        Error::ParseJson(e)
+    }
+}
+
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -68,6 +75,7 @@ impl Display for Error {
             Error::ParseInt(e) => f.write_fmt(format_args!("Parse: {:?}", e)),
             Error::ParseFloat(e) => f.write_fmt(format_args!("Parse: {}", e)),
             Error::ParseUtf8(e) => f.write_fmt(format_args!("Parse: {}", e)),
+            Error::ParseJson(e) => f.write_fmt(format_args!("Json: {}", e)),
             Error::General(s) => f.write_fmt(format_args!("General: {}", s)),
             Error::PatternMatch => f.write_str("Pattern mismatch"),
             Error::EmptyIterator => f.write_str("Empty iterator"),
