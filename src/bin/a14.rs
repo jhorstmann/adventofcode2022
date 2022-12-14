@@ -1,9 +1,83 @@
 use adventofcode2022::{read_lines, Result};
+use std::marker::PhantomData;
+use std::ops::{Index, IndexMut, Range};
 use std::str::from_utf8;
 
+struct Grid<T, S: AsRef<[T]>> {
+    data: S,
+    width: usize,
+    height: usize,
+    phantom: PhantomData<T>,
+}
+
+impl<T, S: AsRef<[T]>> Grid<T, S> {
+    fn new(data: S, width: usize) -> Self {
+        assert!(width <= isize::MAX as usize);
+        assert!(data.as_ref().len() % width == 0);
+        let height = data.as_ref().len() / width;
+        assert!(height <= isize::MAX as usize);
+        Self {
+            data,
+            width,
+            height,
+            phantom: PhantomData::default(),
+        }
+    }
+
+    fn get(&self, x: isize, y: isize) -> Option<&T> {
+        if x < 0 || x >= self.width as isize || y < 0 || y >= self.height as isize {
+            None
+        } else {
+            Some(&self.data.as_ref()[(y as usize) * self.width + (x as usize)])
+        }
+    }
+}
+
+impl<T, S: AsRef<[T]>> AsRef<[T]> for Grid<T, S> {
+    fn as_ref(&self) -> &[T] {
+        self.data.as_ref()
+    }
+}
+
+impl<T, S: AsRef<[T]> + AsMut<[T]>> Grid<T, S> {
+    fn get_mut(&mut self, x: isize, y: isize) -> Option<&mut T> {
+        if x < 0 || x >= self.width as isize || y < 0 || y >= self.height as isize {
+            None
+        } else {
+            Some(&mut self.data.as_mut()[(y as usize) * self.width + (x as usize)])
+        }
+    }
+}
+
+impl<T, S: AsRef<[T]>> Index<(isize, isize)> for Grid<T, S> {
+    type Output = T;
+
+    fn index(&self, (x, y): (isize, isize)) -> &T {
+        self.get(x, y).expect("index out of bounds")
+    }
+}
+
+impl<T, S: AsRef<[T]> + AsMut<[T]>> IndexMut<(isize, isize)> for Grid<T, S> {
+    fn index_mut(&mut self, (x, y): (isize, isize)) -> &mut T {
+        self.get_mut(x, y).expect("index out of bounds")
+    }
+}
+
+impl<T, S: AsRef<[T]> + Clone> Clone for Grid<T, S> {
+    fn clone(&self) -> Self {
+        Self {
+            data: self.data.clone(),
+            width: self.width,
+            height: self.height,
+            phantom: self.phantom,
+        }
+    }
+}
+
 pub fn main() -> Result<()> {
-    let paths: Vec<Vec<(usize, usize)>> = read_lines("data/a14_example.txt")?
-        .into_iter()
+    let lines = read_lines("data/a14.txt")?;
+    let mut paths: Vec<Vec<(isize, isize)>> = lines
+        .iter()
         .map(|line| {
             line.split(" -> ")
                 .map(|pair| {
@@ -18,8 +92,23 @@ pub fn main() -> Result<()> {
 
     // dbg!(&paths);
 
+    let (cave, min_x, max_x, min_y, max_y) = create_grid(&paths);
+    // println!("part1: {}", part1(cave.clone(), 500 - min_x, 0));
+
+    paths.push(vec![
+        (min_x - (max_y - min_y), max_y + 2),
+        (max_x + (max_y - min_y), max_y + 2),
+    ]);
+
+    let (cave, min_x, max_x, min_y, max_y) = create_grid(&paths);
+    println!("part2: {}", part1(cave.clone(), 500 - min_x, 0));
+
+    Ok(())
+}
+
+fn create_grid(paths: &[Vec<(isize, isize)>]) -> (Grid<u8, Vec<u8>>, isize, isize, isize, isize) {
     let (min_x, max_x, min_y, max_y) = paths.iter().flatten().copied().chain(std::iter::once((500, 0))).fold(
-        (usize::MAX, usize::MIN, usize::MAX, usize::MIN),
+        (isize::MAX, isize::MIN, isize::MAX, isize::MIN),
         |mut acc, p| {
             acc.0 = acc.0.min(p.0);
             acc.1 = acc.1.max(p.0);
@@ -31,80 +120,77 @@ pub fn main() -> Result<()> {
 
     dbg!(min_x, max_x, min_y, max_y);
 
-    let width = max_x - min_x + 1;
-    let height = max_y - min_y + 1;
-    let mut cave = vec![b'.'; width * height];
+    let width = (max_x - min_x + 1) as usize;
+    let height = (max_y - min_y + 1) as usize;
+    let mut cave = Grid::new(vec![b'.'; (width * height)], width);
 
     paths.iter().for_each(|path| {
         path.windows(2).for_each(|segment| {
             let (sx, sy) = segment[0];
             let (tx, ty) = segment[1];
 
-            let dx = (tx as isize - sx as isize).signum();
-            let dy = (ty as isize - sy as isize).signum();
+            let dx = (tx - sx).signum();
+            let dy = (ty - sy).signum();
 
             let (mut x, mut y) = (sx, sy);
             loop {
-                cave[(((y - min_y) * width) + x - min_x as usize)] = b'#';
+                cave[(x - min_x, y - min_y)] = b'#';
                 if x == tx && y == ty {
                     break;
                 }
-                x = (x as isize + dx) as usize;
-                y = (y as isize + dy) as usize;
+                x += dx;
+                y += dy;
             }
         })
     });
-
-    // print_cave(&cave, width);
-
-    println!("part1: {}", part1(cave.clone(), 500 - min_x, 0, width));
-
-    Ok(())
+    (cave, min_x, max_x, min_y, max_y)
 }
 
-fn part1(mut cave: Vec<u8>, sx: usize, sy: usize, width: usize) -> usize {
-    assert_eq!(cave.len() % width, 0);
-
-    let height = (cave.len() / width) as isize;
-    let width = width as isize;
+fn part1(mut cave: Grid<u8, Vec<u8>>, sx: isize, sy: isize) -> usize {
+    let height = cave.height as isize;
+    let width = cave.width as isize;
     let mut count = 0_usize;
     'outer: loop {
         let mut x = sx as isize;
         let mut y = sy as isize;
 
-        count += 1;
+        if cave[(x, y)] != b'.' {
+            print_cave(cave.as_ref(), width as usize);
+            break;
+        }
 
         loop {
-            assert_eq!(cave[(y*width+x) as usize], b'.');
+            // assert_eq!(cave[(x, y)], b'.');
 
             if y >= height {
                 break 'outer;
             }
-            if cave[((y + 1) * width + x) as usize] == b'.' {
+            if cave[(x, y + 1)] == b'.' {
                 y += 1;
-                if y >= height-1 {
+                if y >= height - 1 {
                     break 'outer;
                 }
-            } else if x > 0 && cave[((y + 1) * width + x - 1) as usize] == b'.' {
+            } else if x > 0 && cave[(x - 1, y + 1)] == b'.' {
                 y += 1;
                 x -= 1;
                 if x <= 0 {
                     break 'outer;
                 }
-            } else if x < width - 1 && cave[((y + 1) * width + x + 1) as usize] == b'.' {
+            } else if x < width - 1 && cave[(x + 1, y + 1)] == b'.' {
                 y += 1;
                 x += 1;
-                if x >= width-1 {
+                if x >= width - 1 {
                     break 'outer;
                 }
             } else {
-                cave[(y * width + x) as usize] = b'o';
+                cave[(x, y)] = b'o';
                 break;
             }
         }
+        count += 1;
 
-        println!("{count}");
-        print_cave(&cave, width as usize);
+        // println!("{count}");
+        // print_cave(cave.as_ref(), width as usize);
 
         // if count == 24 {
         //     break;
