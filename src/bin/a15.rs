@@ -1,7 +1,7 @@
 use adventofcode2022::read_lines;
 use adventofcode2022::{regex, Error, Result};
-use std::ops::{Range, RangeInclusive};
-use std::str::{from_utf8, FromStr};
+use std::ops::RangeInclusive;
+use std::str::FromStr;
 
 #[derive(Debug, Clone)]
 struct Sensor {
@@ -59,12 +59,11 @@ pub fn main() -> Result<()> {
         .map(|line| Sensor::from_str(line))
         .collect::<Result<Vec<Sensor>>>()?;
 
-    // dbg!(&sensors);
-
-    let part1 = solve_part1(&sensors, 10);
+    let part1 = solve_part1(&sensors, 2000000);
     println!("part1: {part1}");
 
-    // dbg!(boundary_points(0, 0, 2).collect::<Vec<_>>());
+    // dbg!(boundary_points(0, 0, 10).collect::<Vec<_>>().len());
+    // dbg!(boundary_points(0, 0, 10).collect::<HashSet<_>>().len());
 
     let part2 = solve_part2(&sensors, 0..=4_000_000);
     println!("part2: {part2}");
@@ -107,10 +106,7 @@ fn solve_part2(sensors: &[Sensor], range: RangeInclusive<i64>) -> i64 {
         .iter()
         .flat_map(|s| boundary_points(s.position.0, s.position.1, s.min_range() + 1))
         .filter(|point: &(i64, i64)| range.contains(&point.0) && range.contains(&point.1))
-        .filter(|point| !sensors.iter().any(|s| s.in_range(point.0, point.1)))
-        .collect::<Vec<(i64, i64)>>();
+        .filter(|point| !sensors.iter().any(|s| s.in_range(point.0, point.1)));
 
-    // dbg!(&candidates);
-
-    candidates.first().map(|(x, y)| x * 4_000_000 + y).unwrap_or_default()
+    candidates.next().map(|(x, y)| x * 4_000_000 + y).unwrap_or_default()
 }
