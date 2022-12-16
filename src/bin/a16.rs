@@ -43,7 +43,7 @@ impl FromStr for Id {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Valve {
     id: Id,
     flow_rate: u32,
@@ -68,22 +68,48 @@ impl FromStr for Valve {
     }
 }
 
-fn solve_part1(valves: &[Valve], minutes_left: usize, current_pressure: usize) {}
+fn solve_part1(
+    valves_by_id: &[Option<Valve>],
+    transitions: &[Vec<Id>],
+    current_valve: Id,
+    valve_states: Vec<u64>,
+    minutes_left: usize,
+    current_pressure: usize,
+) {
+}
 
 pub fn main() -> Result<()> {
-    let valves = read_lines("data/a16_example.txt")?
-        .iter()
-        .map(|line| Valve::from_str(line))
-        .collect::<Result<Vec<_>>>()?;
-
-    let transitions = valves
-        .iter()
-        .map(|v| (v.id, v.tunnels.clone()))
-        .collect::<HashMap<_, _>>();
-
+    let min_id = Id::try_new("AA").unwrap().to_int();
     let max_id = Id::try_new("ZZ").unwrap().to_int();
 
-    dbg!(max_id);
+    dbg!(min_id, max_id);
+
+    let mut valves = vec![None; max_id];
+
+    read_lines("data/a16_example.txt")?
+        .iter()
+        .try_for_each(|line| -> Result<()> {
+            let v = Valve::from_str(line)?;
+            let idx = v.id.to_int();
+            valves[idx] = Some(v);
+            Ok(())
+        })?;
+
+    let mut transitions = vec![vec![]; max_id];
+
+    valves
+        .iter()
+        .flatten()
+        .for_each(|v| transitions[v.id.to_int()] = v.tunnels.clone());
+
+    solve_part1(
+        &valves,
+        &transitions,
+        Id::try_new("AA").unwrap(),
+        vec![0; (max_id + 63) / 64],
+        30,
+        0,
+    );
 
     Ok(())
 }
