@@ -19,14 +19,67 @@ pub fn main() -> Result<()> {
         [acc[0].max(p[0]), acc[1].max(p[1]), acc[2].max(p[2])]
     });
 
-    let c1 = count_sides(&mut points, max, 0, 1, 2);
-    let c2 = count_sides(&mut points, max, 0, 2, 1);
-    let c3 = count_sides(&mut points, max, 1, 2, 0);
-
-    let part1 = c1 + c2 + c3;
-    println!("part1: {part1}");
+    println!("part1: {}", solve_part1(&mut points, max));
+    println!("part2: {}", solve_part2(&mut points));
 
     Ok(())
+}
+
+fn solve_part2(points: &mut Vec<Point>) -> usize {
+    let mut cube = [[[false; 20]; 20]; 20];
+
+    points.iter().for_each(|[x, y, z]| {
+        cube[*x as usize][*y as usize][*z as usize] = true;
+    });
+
+    floodfill(&mut cube, 0, 0, 0);
+    let air = cube.iter().flatten().flatten().filter(|b| !**b).count();
+    dbg!(air);
+
+    cube.iter().enumerate().for_each(|(x, slice)| {
+        slice.iter().enumerate().for_each(|(y, line)| {
+            line.iter().enumerate().for_each(|(z, b)| {
+                if !*b {
+                    points.push([x as u32, y as u32, z as u32]);
+                }
+            })
+        })
+    });
+
+    solve_part1(points, [20, 20, 20])
+}
+
+fn floodfill<const S: usize>(cube: &mut [[[bool; S]; S]; S], x: usize, y: usize, z: usize) {
+    if cube[x][y][z] {
+        return;
+    }
+    cube[x][y][z] = true;
+    if x > 0 {
+        floodfill(cube, x - 1, y, z);
+    }
+    if x < S - 1 {
+        floodfill(cube, x + 1, y, z);
+    }
+    if y > 0 {
+        floodfill(cube, x, y - 1, z);
+    }
+    if y < S - 1 {
+        floodfill(cube, x, y + 1, z);
+    }
+    if z > 0 {
+        floodfill(cube, x, y, z - 1);
+    }
+    if z < S - 1 {
+        floodfill(cube, x, y, z + 1)
+    }
+}
+
+fn solve_part1(points: &mut Vec<Point>, max: [u32; 3]) -> usize {
+    let c1 = count_sides(points, max, 0, 1, 2);
+    let c2 = count_sides(points, max, 0, 2, 1);
+    let c3 = count_sides(points, max, 1, 2, 0);
+
+    c1 + c2 + c3
 }
 
 fn count_sides(points: &mut Vec<Point>, max: [u32; 3], dir_x: usize, dir_y: usize, dir_z: usize) -> usize {
@@ -41,12 +94,12 @@ fn count_sides(points: &mut Vec<Point>, max: [u32; 3], dir_x: usize, dir_y: usiz
                         |(last_z, count), p| {
                             let z = p[dir_z];
                             let inc = match (last_z, z) {
-                                (None, x) => 1,
+                                (None, _) => 1,
                                 (Some(old_x), x) if x == old_x + 1 => 0,
                                 _ => 2,
                             };
 
-                            (Some(p[dir_z]), count + inc)
+                            (Some(z), count + inc)
                         },
                     );
                     if last_z.is_some() {
