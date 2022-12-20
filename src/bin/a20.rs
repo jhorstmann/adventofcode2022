@@ -2,40 +2,51 @@ use adventofcode2022::Result;
 use adventofcode2022::read_lines;
 
 pub fn main() -> Result<()> {
-    // let mut numbers = read_lines("data/a20_example.txt")?.iter().map(|line| line.parse()).collect::<Result<Vec<i32>>>()?;
+    let mut input = read_lines("data/a20_example.txt")?.iter().map(|line| line.parse()).collect::<std::result::Result<Vec<i32>, _>>()?;
 
-    let mut input = vec![4, 5, 6, 1, 7, 8, 9];
-    let mut output = vec![-42; input.len()];
+    let mut output = input.clone();
+    // let mut input = vec![4, -2, 5, 6, 7, 8, 9];
+    let mut permutations = Vec::with_capacity(input.len() * input.len());
 
-    mix(&mut input, &mut output, 3);
+    for i in 0..input.len() as u32 {
+        create_permutation(&input, i, &mut permutations);
+    }
 
-    dbg!(&output);
-
+    permutations.chunks(input.len()).for_each(|permutation| {
+        apply_permutation(&input, &mut output, &permutations[0..input.len()]);
+        dbg!(permutation, &input, &output);
+        std::mem::swap(&mut input, &mut output);
+    });
 
     Ok(())
 }
 
-fn mix(input: &mut Vec<i32>, output: &mut Vec<i32>, index: usize) {
-    let len = input.len();
+fn create_permutation(input: &[i32], index: u32, permutations: &mut Vec<u32>) {
+    let len = input.len() as u32;
 
     // assert!(len == output.len());
-    assert!(len < i32::MAX as usize);
     assert!(index < len);
 
-    let n= input[index];
-    let new_index = (index as i32 + n).rem_euclid(input.len() as i32) as usize;
-dbg!(new_index);
+    let n = input[index as usize];
+    let new_index = (index as i32 + n - ((n < 0) as i32)).rem_euclid(input.len() as i32) as u32;
+    // dbg!(index, n, new_index);
 
-    let mut j = 0;
-    output.iter_mut().enumerate().for_each(|(i, out)| {
-        *out = input[j];
-        j += 1;
-        if i == index {
-            j+=1;
-        }
-    });
-    output[new_index] = n;
+    permutations.extend(
+        (0..input.len() as u32).map(|i| {
+            if i < index {
+                i
+            } else if i < new_index {
+                i + 1
+            } else if i == new_index {
+                index
+            } else {
+                i
+            }
+        }))
+}
 
-
-    // std::mem::swap(input, output);
+fn apply_permutation(input: &[i32], output: &mut [i32], permutation: &[u32]) {
+    output.iter_mut().zip(permutation.iter()).for_each(|(out, i)| {
+        *out = input[*i as usize];
+    })
 }
